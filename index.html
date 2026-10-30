@@ -216,6 +216,19 @@ details.how b{color:var(--ink)}
 .err{color:var(--cpu); font-weight:700; font-size:.92rem} .err:empty{display:none}
 .ok-msg{color:var(--good); font-weight:700; font-size:.92rem}
 .toast{position:fixed; left:50%; transform:translateX(-50%); bottom:calc(20px + env(safe-area-inset-bottom,0px)); background:var(--ink); color:var(--card); padding:10px 16px; border-radius:999px; font-weight:700; font-size:.9rem; z-index:60; max-width:calc(100% - 32px); text-align:center}
+.scope{display:flex; gap:8px; align-items:center}
+.scope select{flex:1; min-width:0; font:inherit; font-weight:700; padding:9px 10px; border-radius:10px; border:1.5px solid var(--faint); background:var(--card); color:var(--ink)}
+.dot{display:inline-grid; place-items:center; min-width:18px; height:18px; padding:0 5px; border-radius:999px; background:var(--cpu); color:#fff; font-size:.7rem; margin-left:4px}
+.trophy.alert{position:relative} .trophy.alert::after{content:""; position:absolute; top:-2px; right:-2px; width:10px; height:10px; border-radius:50%; background:var(--cpu); border:2px solid var(--card)}
+.note{display:flex; flex-direction:column; gap:8px; padding:12px; border-radius:12px; background:var(--you-soft); font-size:.92rem}
+.act{display:flex; gap:8px; flex-wrap:wrap}
+.lg-list,.mlist{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px}
+.lg-list li{border:1px solid var(--faint); border-radius:12px; padding:12px; display:flex; flex-direction:column; gap:6px}
+.lg-top{display:flex; justify-content:space-between; gap:8px; align-items:center}
+.lg-top strong{min-width:0; overflow-wrap:anywhere}
+.sheet .chip{font-size:.72rem; padding:2px 8px; margin-left:6px; background:var(--paper); color:var(--muted)}
+.mlist li{display:flex; justify-content:space-between; gap:10px; align-items:center; padding:8px 0; border-bottom:1px solid var(--faint)}
+.link.danger{color:var(--cpu); align-self:flex-start}
 .copy{font-size:.75rem; color:var(--muted); text-align:center; margin:0}
 </style>
 
@@ -279,6 +292,7 @@ details.how b{color:var(--ink)}
       <li>Later days are worth more (×1 on Monday up to ×3 on Sunday). Monday to Sunday adds up to a weekly total, then it starts again.</li>
       <li>Everyone gets the same board and Red Pen plays the same way, so scores are comparable.</li>
       <li>Tap the 🏆 to pick a nickname and get on the leaderboard: today, this week, last week and all time. Your daily score is saved when you finish.</li>
+      <li>Start a <b>private league</b> for friends, family or work from the 🏆 → Leagues, and invite people by their nickname.</li>
     </ul>
   </details>
 
@@ -1098,12 +1112,12 @@ function onDailyFinished() {
 /* ---------- sign-in state ---------- */
 async function switchUser() {
   player = null; playerP = null;
-  if (user) { await loadPlayer(); await loadMyWeek(); if (gameFinished()) await postScore() }
-  else remoteWeek = null;
+  if (user) { await loadPlayer(); await loadMyWeek(); if (gameFinished()) await postScore(); loadLeagues().catch(e => console.warn(e)) }
+  else { remoteWeek = null; myLeagues = []; myInvites = []; leaguesLoaded = false }
   updateTrophy(); if (g) render();
 }
 if (auth) auth.onAuthStateChanged(u => { user = u; switchUser().catch(e => console.warn(e)) });
-function updateTrophy() { const b = $('trophyBtn'); if (b) b.classList.toggle('signed', !!player) }
+function updateTrophy() { const b = $('trophyBtn'); if (!b) return; b.classList.toggle('signed', !!player); b.classList.toggle('alert', typeof myInvites !== 'undefined' && myInvites.length > 0) }
 
 /* ---------- pop-up sheet ---------- */
 let toastT;
@@ -1216,22 +1230,197 @@ function mountSignIn(sh, after) {
 }
 
 /* ---------- leaderboard ---------- */
+/* ---------- Private leagues (same as Tally) ----------
+   leagues/{id}       name, owner, ownerName, members[], created
+   members/{id_uid}   league, uid, name, joined   (when each member joined)
+   invites/{id_uid}   league, leagueName, uid, name, from, ts
+   League tables show members only. All time counts points since each member joined. */
+const LG_MAX = 50, LG_OWN_MAX = 5;
+const FV = () => firebase.firestore.FieldValue;
+let myLeagues = [], myInvites = [], lbScope = '', leaguesLoaded = false;
+try { lbScope = localStorage.getItem('letterbox.lbScope') || '' } catch (e) { }
+async function loadLeagues() {
+  if (!user || !db) { myLeagues = []; myInvites = []; return }
+  const [l, i] = await Promise.all([
+    db.collection('leagues').where('members', 'array-contains', user.uid).get(),
+    db.collection('invites').where('uid', '==', user.uid).get()]);
+  myLeagues = l.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => a.name.localeCompare(b.name));
+  myInvites = i.docs.map(d => ({ id: d.id, ...d.data() }));
+  leaguesLoaded = true;
+  if (lbScope && !myLeagues.some(x => x.id === lbScope)) setScope('');
+  updateTrophy();
+}
+function setScope(id) { lbScope = id; try { localStorage.setItem('letterbox.lbScope', id) } catch (e) { } }
+const scopeLeague = () => myLeagues.find(x => x.id === lbScope) || null;
+const ms = t => t && t.toMillis ? t.toMillis() : (t && t.seconds ? t.seconds * 1000 : 0);
+async function leagueJoined(lg) {
+  const q = await db.collection('members').where('league', '==', lg.id).get();
+  const j = {}; q.docs.forEach(d => { const x = d.data(); j[x.uid] = { name: x.name, joined: ms(x.joined) } });
+  return j;
+}
+async function leagueAllTime(lg) {
+  const joined = await leagueJoined(lg), ids = lg.members.slice();
+  const chunks = []; for (let i = 0; i < ids.length; i += 30) chunks.push(ids.slice(i, i + 30));
+  const snaps = await Promise.all(chunks.map(c => db.collection('scores').where('uid', 'in', c).get()));
+  const tot = {}; ids.forEach(u => tot[u] = { uid: u, name: (joined[u] || {}).name || 'Player', pts: 0, played: 0 });
+  snaps.forEach(q => q.docs.forEach(d => {
+    const x = d.data(), p = tot[x.uid]; if (!p) return;
+    const since = (joined[x.uid] || {}).joined || 0;
+    if (ms(x.ts) && ms(x.ts) < since - 864e5) return; // a day's grace so a score from joining day still counts
+    p.pts += x.points || 0; p.played++; if (x.name) p.name = x.name;
+  }));
+  return Object.values(tot).sort((a, b) => b.pts - a.pts || a.name.localeCompare(b.name)).map(p => ({ uid: p.uid, name: p.name, pts: p.pts, meta: `${p.played} played` }));
+}
+function inviteBanner() {
+  return myInvites.map(v => `<div class="note"><span><strong>${esc(v.from)}</strong> invited you to join <strong>${esc(v.leagueName)}</strong>.</span>
+    <span class="act"><button class="small" type="button" data-acc="${v.id}">Join</button><button class="small ghostbtn" type="button" data-dec="${v.id}">No thanks</button></span></div>`).join('');
+}
+function mountInvites(sh, after) {
+  sh.querySelectorAll('[data-acc]').forEach(b => b.addEventListener('click', async () => {
+    const v = myInvites.find(x => x.id === b.dataset.acc); b.disabled = true;
+    try {
+      const lref = db.collection('leagues').doc(v.league), lg = await lref.get();
+      if (!lg.exists) { await db.collection('invites').doc(v.id).delete().catch(() => { }); toast('That league no longer exists'); await loadLeagues(); after(); return }
+      const bt = db.batch();
+      bt.update(lref, { members: FV().arrayUnion(user.uid) });
+      bt.set(db.collection('members').doc(v.league + '_' + user.uid), { league: v.league, uid: user.uid, name: player.name, joined: FV().serverTimestamp() });
+      bt.delete(db.collection('invites').doc(v.id));
+      await bt.commit();
+      toast(`You've joined ${v.leagueName}`); setScope(v.league); await loadLeagues(); after();
+    } catch (e) { console.warn(e); toast(e.code === 'permission-denied' ? 'Blocked by the database rules.' : 'Could not join. Try again.'); b.disabled = false }
+  }));
+  sh.querySelectorAll('[data-dec]').forEach(b => b.addEventListener('click', async () => {
+    b.disabled = true;
+    try { await db.collection('invites').doc(b.dataset.dec).delete(); await loadLeagues(); after() } catch (e) { console.warn(e); b.disabled = false; toast('Could not do that. Try again.') }
+  }));
+}
+function showLeagues() {
+  openSheet(`<h2>Leagues</h2><div id="lgBody" class="form"><p class="muted">Loading…</p></div>`, sh => fillLeagues(sh.querySelector('#lgBody')));
+}
+async function fillLeagues(el) {
+  if (!db) { el.innerHTML = '<p class="muted">Leagues are offline right now.</p>'; return }
+  if (!user) { el.innerHTML = `<p class="muted">Make a private league for friends, family or work, with its own tables. Pick a nickname first.</p>` + signInHTML(); mountSignIn(el, () => showLeagues()); return }
+  try { if (!player) await loadPlayer(); await loadLeagues() }
+  catch (e) { console.warn(e); el.innerHTML = `<p class="muted">${e.code === 'permission-denied' ? 'Leagues are blocked by the database rules. The game owner needs to update them.' : 'Could not load leagues. Check your connection.'}</p>`; return }
+  el.innerHTML = `${inviteBanner()}
+    <p class="muted small">Private leagues have their own This week, Today, Last week and All time tables. Everyone starts on 0 when they join.</p>
+    ${myLeagues.length ? `<ul class="lg-list">${myLeagues.map(l => `<li><div class="lg-top"><strong>${esc(l.name)}</strong><span class="chip">${l.members.length} player${l.members.length > 1 ? 's' : ''}</span></div>
+      <div class="muted small">${l.owner === user.uid ? 'You run this league' : `Run by ${esc(l.ownerName)}`}</div>
+      <div class="act"><button class="small" type="button" data-view="${l.id}">Tables</button><button class="small ghostbtn" type="button" data-manage="${l.id}">${l.owner === user.uid ? 'Manage' : 'Members'}</button></div></li>`).join('')}</ul>` : '<p class="muted">You aren\'t in any leagues yet.</p>'}
+    <form class="form" id="lgNew" novalidate>
+      <h3 class="sub">Start a league</h3>
+      <div class="field"><label for="lgName">League name</label><div class="inline"><input id="lgName" maxlength="30" placeholder="e.g. The Depot Lot"><button class="small" type="submit">Create</button></div></div>
+      <div class="err" id="lgErr"></div>
+    </form>
+    <button class="ghostbtn" type="button" id="lgToBoard">Back to the leaderboard</button>`;
+  mountInvites(el, () => fillLeagues(el));
+  el.querySelector('#lgToBoard').addEventListener('click', () => showBoard());
+  el.querySelectorAll('[data-view]').forEach(b => b.addEventListener('click', () => { setScope(b.dataset.view); showBoard('week') }));
+  el.querySelectorAll('[data-manage]').forEach(b => b.addEventListener('click', () => showLeague(b.dataset.manage)));
+  el.querySelector('#lgNew').addEventListener('submit', async e => {
+    e.preventDefault(); const name = el.querySelector('#lgName').value.trim(), err = el.querySelector('#lgErr'); err.textContent = '';
+    if (name.length < 2) { err.textContent = 'Give it a name of at least 2 letters.'; return }
+    if (myLeagues.filter(l => l.owner === user.uid).length >= LG_OWN_MAX) { err.textContent = `You can run up to ${LG_OWN_MAX} leagues.`; return }
+    try {
+      const ref = db.collection('leagues').doc(), bt = db.batch();
+      bt.set(ref, { name, owner: user.uid, ownerName: player.name, members: [user.uid], created: FV().serverTimestamp() });
+      bt.set(db.collection('members').doc(ref.id + '_' + user.uid), { league: ref.id, uid: user.uid, name: player.name, joined: FV().serverTimestamp() });
+      await bt.commit();
+      toast(`${name} created`); await loadLeagues(); showLeague(ref.id);
+    } catch (x) { console.warn(x); err.textContent = x.code === 'permission-denied' ? 'Blocked by the database rules. The game owner needs to update them.' : 'Could not create it. Check your connection.' }
+  });
+}
+function showLeague(id) {
+  openSheet(`<h2>League</h2><div id="lgOne" class="form"><p class="muted">Loading…</p></div>`, sh => fillLeague(sh.querySelector('#lgOne'), id));
+}
+async function fillLeague(el, id) {
+  let lg, joined, inv = [];
+  try {
+    const d = await db.collection('leagues').doc(id).get();
+    if (!d.exists) { el.innerHTML = '<p class="muted">This league no longer exists.</p>'; return }
+    lg = { id, ...d.data() }; joined = await leagueJoined(lg);
+    if (lg.owner === user.uid) inv = (await db.collection('invites').where('league', '==', id).get()).docs.map(x => ({ id: x.id, ...x.data() }));
+  } catch (e) { console.warn(e); el.innerHTML = '<p class="muted">Could not load the league. Check your connection.</p>'; return }
+  const own = lg.owner === user.uid;
+  el.closest('.sheet').querySelector('h2').textContent = lg.name;
+  el.innerHTML = `<h3 class="sub">Members (${lg.members.length})</h3>
+    <ul class="mlist">${lg.members.map(u => `<li><span>${esc((joined[u] || {}).name || 'Player')}${u === lg.owner ? '<span class="chip">runs it</span>' : ''}${u === user.uid ? '<span class="chip">you</span>' : ''}</span>${own && u !== user.uid ? `<button class="link" type="button" data-rm="${u}">Remove</button>` : ''}</li>`).join('')}</ul>
+    ${own ? `${inv.length ? `<h3 class="sub">Invited, waiting to join</h3><ul class="mlist">${inv.map(v => `<li><span>${esc(v.name)}</span><button class="link" type="button" data-cancel="${v.id}">Cancel</button></li>`).join('')}</ul>` : ''}
+      <form class="form" id="lgInv" novalidate><div class="field"><label for="invName">Invite a player by nickname</label><div class="inline"><input id="invName" maxlength="16" autocapitalize="off" spellcheck="false" placeholder="Their Letterbox nickname"><button class="small" type="submit">Invite</button></div></div><div class="err" id="invErr"></div></form>
+      <p class="muted small">They'll see the invite next time they open the 🏆.</p>` : ''}
+    <div class="row"><button type="button" id="lgTables">See tables</button><button class="ghostbtn" type="button" id="lgBack">All leagues</button></div>
+    ${own ? `<button class="link danger" type="button" id="lgDel">Delete this league</button>` : `<button class="link danger" type="button" id="lgLeave">Leave this league</button>`}`;
+  el.querySelector('#lgTables').addEventListener('click', () => { setScope(id); showBoard('week') });
+  el.querySelector('#lgBack').addEventListener('click', showLeagues);
+  const redo = () => fillLeague(el, id);
+  const sure = (b, label) => { if (b.dataset.sure !== '1') { b.dataset.sure = '1'; b.textContent = label; return false } return true };
+  el.querySelectorAll('[data-rm]').forEach(b => b.addEventListener('click', async () => {
+    if (!sure(b, 'Tap again to remove')) return;
+    try { const bt = db.batch(); bt.update(db.collection('leagues').doc(id), { members: FV().arrayRemove(b.dataset.rm) }); bt.delete(db.collection('members').doc(id + '_' + b.dataset.rm)); await bt.commit(); toast('Removed'); redo() }
+    catch (e) { console.warn(e); toast('Could not remove them. Try again.') }
+  }));
+  el.querySelectorAll('[data-cancel]').forEach(b => b.addEventListener('click', async () => {
+    try { await db.collection('invites').doc(b.dataset.cancel).delete(); redo() } catch (e) { console.warn(e); toast('Could not cancel. Try again.') }
+  }));
+  const f = el.querySelector('#lgInv');
+  if (f) f.addEventListener('submit', async e => {
+    e.preventDefault(); const n = el.querySelector('#invName').value.trim(), err = el.querySelector('#invErr'); err.textContent = '';
+    if (slug(n).length < 2) { err.textContent = 'Type their nickname.'; return }
+    try {
+      const nd = await db.collection('names').doc(slug(n)).get();
+      if (!nd.exists) { err.textContent = `No player called "${n}". Check the spelling.`; return }
+      const uid = nd.data().uid;
+      if (lg.members.includes(uid)) { err.textContent = `${n} is already in this league.`; return }
+      if (inv.some(v => v.uid === uid)) { err.textContent = `${n} has already been invited.`; return }
+      if (lg.members.length + inv.length >= LG_MAX) { err.textContent = `Leagues can have up to ${LG_MAX} players.`; return }
+      const pd = await db.collection('players').doc(uid).get();
+      await db.collection('invites').doc(id + '_' + uid).set({ league: id, leagueName: lg.name, uid, name: pd.exists ? pd.data().name : n, from: player.name, ts: FV().serverTimestamp() });
+      toast(`Invite sent to ${n}`); redo();
+    } catch (x) { console.warn(x); err.textContent = x.code === 'permission-denied' ? 'Blocked by the database rules.' : 'Could not send the invite. Try again.' }
+  });
+  const del = el.querySelector('#lgDel');
+  if (del) del.addEventListener('click', async () => {
+    if (!sure(del, 'Tap again to delete it for everyone')) return;
+    try {
+      const bt = db.batch(); lg.members.forEach(u => bt.delete(db.collection('members').doc(id + '_' + u))); inv.forEach(v => bt.delete(db.collection('invites').doc(v.id))); bt.delete(db.collection('leagues').doc(id)); await bt.commit();
+      if (lbScope === id) setScope(''); toast('League deleted'); showLeagues()
+    } catch (e) { console.warn(e); toast('Could not delete it. Try again.') }
+  });
+  const lv = el.querySelector('#lgLeave');
+  if (lv) lv.addEventListener('click', async () => {
+    if (!sure(lv, 'Tap again to leave')) return;
+    try {
+      const bt = db.batch(); bt.update(db.collection('leagues').doc(id), { members: FV().arrayRemove(user.uid) }); bt.delete(db.collection('members').doc(id + '_' + user.uid)); await bt.commit();
+      if (lbScope === id) setScope(''); toast(`You've left ${lg.name}`); showLeagues()
+    } catch (e) { console.warn(e); toast('Could not leave. Try again.') }
+  });
+}
+
 let lbTab = 'week';
 function showBoard(tab) {
   if (tab) lbTab = tab;
   const tabs = [['week', 'This week'], ['day', 'Today'], ['last', 'Last week'], ['all', 'All time']];
+  const lg = scopeLeague();
+  const scope = user ? `<div class="scope"><select id="lbScope" aria-label="Which table">${[['', 'Everyone'], ...myLeagues.map(l => [l.id, l.name])].map(([v, l]) => `<option value="${v}"${v === (lg ? lg.id : '') ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select><button class="small ghostbtn" id="lbLeagues" type="button">Leagues${myInvites.length ? ` <span class="dot">${myInvites.length}</span>` : ''}</button></div>` : '';
   const who = user && player ? `<div class="who"><span>Playing as <strong>${esc(player.name)}</strong></span><button class="link" id="signOut" type="button">Sign out</button></div>` : '';
-  openSheet(`<h2>Leaderboard</h2><div class="seg four" role="tablist">${tabs.map(([k, l]) => `<button role="tab" type="button" data-tab="${k}" aria-selected="${lbTab === k}">${l}</button>`).join('')}</div>${who}<div id="lbBody"><p class="muted">Loading…</p></div>`, sh => {
+  openSheet(`<h2>Leaderboard</h2>${inviteBanner()}${scope}<div class="seg four" role="tablist">${tabs.map(([k, l]) => `<button role="tab" type="button" data-tab="${k}" aria-selected="${lbTab === k}">${l}</button>`).join('')}</div>${who}<div id="lbBody"><p class="muted">Loading…</p></div>`, sh => {
     sh.querySelectorAll('[data-tab]').forEach(b => b.addEventListener('click', () => showBoard(b.dataset.tab)));
-    const so = sh.querySelector('#signOut'); if (so) so.addEventListener('click', async () => { await auth.signOut(); user = null; await switchUser(); toast('Signed out'); showBoard() });
+    const sc = sh.querySelector('#lbScope'); if (sc) sc.addEventListener('change', () => { setScope(sc.value); showBoard() });
+    const lb = sh.querySelector('#lbLeagues'); if (lb) lb.addEventListener('click', showLeagues);
+    mountInvites(sh, () => showBoard());
+    if (user && !leaguesLoaded) loadLeagues().then(() => { if (!$('scrim').hidden && $('lbBody')) showBoard() }).catch(e => console.warn(e));
+    const so = sh.querySelector('#signOut'); if (so) so.addEventListener('click', async () => { await auth.signOut(); user = null; myLeagues = []; myInvites = []; leaguesLoaded = false; setScope(''); await switchUser(); toast('Signed out'); showBoard() });
     fillBoard(sh.querySelector('#lbBody'));
   });
 }
 async function fillBoard(el) {
   if (!db) { el.innerHTML = `<p class="muted">The leaderboard isn't connected yet. You can still play, and your scores are kept on this phone.</p>`; return }
   let rows = [];
+  const lg = scopeLeague();
   try {
-    if (lbTab === 'all') {
+    if (lg && lbTab === 'all') {
+      rows = await leagueAllTime(lg);
+    } else if (lbTab === 'all') {
       const q = await db.collection('players').orderBy('total', 'desc').limit(100).get();
       rows = q.docs.map(d => ({ uid: d.id, ...d.data() })).filter(d => d.played > 0).map(d => ({ uid: d.uid, name: d.name, pts: d.total, meta: `${d.played} played` }));
     } else if (lbTab === 'day') {
@@ -1246,7 +1435,9 @@ async function fillBoard(el) {
       rows = Object.values(by).sort((a, b) => b.pts - a.pts || b.n - a.n).map(p => ({ ...p, meta: `${p.n}/7 days` }));
     }
   } catch (e) { console.warn(e); el.innerHTML = '<p class="muted">Could not load the leaderboard. Check your connection.</p>'; return }
+  if (lg && lbTab !== 'all') rows = rows.filter(r => lg.members.includes(r.uid));
   let html = '';
+  if (lg) html += `<p class="muted small"><strong>${esc(lg.name)}</strong>: ${lg.members.length} player${lg.members.length > 1 ? 's' : ''}.${lbTab === 'all' ? ' Points since each player joined.' : ''}</p>`;
   if (lbTab === 'week') html += `<p class="muted small">Monday to Sunday added up. Resets every Monday.</p>`;
   if (lbTab === 'last' && rows.length) html += `<p class="muted small">Last week's winner: <strong>${esc(rows[0].name)}</strong> 🏆</p>`;
   if (!rows.length) html += `<p class="muted">${lbTab === 'day' ? "Nobody has posted a score today yet. Be the first." : lbTab === 'last' ? 'No scores last week.' : 'No scores yet.'}</p>`;

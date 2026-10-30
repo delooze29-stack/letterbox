@@ -31,4 +31,4 @@ Open **letterbox.thepuzzleshed.com**, tap 🏆, make a nickname and password, pl
 ## Notes
 - Passwords can't be reset (no emails). If someone forgets, delete their account under
   Authentication → Users and their name under Firestore → names, so they can sign up again.
-- Not included yet: notifications, private leagues, challenges.
+- Private leagues are included. Not included yet: notifications, challenges.
