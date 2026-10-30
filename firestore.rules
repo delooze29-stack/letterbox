@@ -1,0 +1,75 @@
+rules_version = '2';
+// Letterbox © 2026 Mathew Doughty. Paste all of this into Firebase: Firestore Database → Rules → Publish.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Day 0 = Monday 26 Oct 2026 (UTC). The game uses the phone's own date, so allow one day either side.
+    function dayNow() {
+      return int(math.floor((request.time.toMillis() - 1792972800000) / 86400000));
+    }
+    function validDay(d) {
+      return d is int && d >= dayNow() - 1 && d <= dayNow() + 1;
+    }
+    function scorePath(day, uid) {
+      return /databases/$(database)/documents/scores/$(string(day) + '_' + uid);
+    }
+
+    match /players/{uid} {
+      allow read: if true;
+
+      allow create: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['name', 'total', 'played', 'last'])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() >= 2 && request.resource.data.name.size() <= 16
+        && request.resource.data.total == 0
+        && request.resource.data.played == 0
+        && request.resource.data.last == -1;
+
+      // Totals can only move by exactly the score being saved in the same write, once per day.
+      allow update: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['name', 'total', 'played', 'last'])
+        && request.resource.data.name == resource.data.name
+        && request.resource.data.last is int
+        && request.resource.data.last > resource.data.last
+        && !exists(scorePath(request.resource.data.last, uid))
+        && existsAfter(scorePath(request.resource.data.last, uid))
+        && request.resource.data.total == resource.data.total
+             + getAfter(scorePath(request.resource.data.last, uid)).data.points
+        && request.resource.data.played == resource.data.played + 1;
+
+      allow delete: if false;
+    }
+
+    // Nicknames: one document per nickname, so each can only be claimed once.
+    match /names/{nameId} {
+      allow read: if true;
+      allow create: if request.auth != null
+        && request.resource.data.keys().hasOnly(['uid'])
+        && request.resource.data.uid == request.auth.uid
+        && nameId.size() >= 2 && nameId.size() <= 16;
+      allow update, delete: if false;
+    }
+
+    // One score per player per day. Points are worked out on the phone (like Tally's free version),
+    // so these checks stop silly numbers and double posting rather than every possible cheat.
+    match /scores/{scoreId} {
+      allow read: if true;
+      allow create: if request.auth != null
+        && request.resource.data.keys().hasOnly(['uid', 'name', 'day', 'week', 'theme', 'points', 'solved', 'secs', 'ts'])
+        && request.resource.data.uid == request.auth.uid
+        && validDay(request.resource.data.day)
+        && request.resource.data.week == int(math.floor(request.resource.data.day / 7))
+        && scoreId == string(request.resource.data.day) + '_' + request.auth.uid
+        && request.resource.data.theme is string && request.resource.data.theme.size() <= 30
+        && request.resource.data.points is int
+        && request.resource.data.points >= 0 && request.resource.data.points <= 20000
+        && request.resource.data.solved is bool
+        && request.resource.data.secs is int
+        && request.resource.data.secs >= 0 && request.resource.data.secs <= 86400
+        && request.resource.data.ts == request.time
+        && request.resource.data.name == get(/databases/$(database)/documents/players/$(request.auth.uid)).data.name
+        && getAfter(/databases/$(database)/documents/players/$(request.auth.uid)).data.last == request.resource.data.day;
+      allow update, delete: if false;
+    }
+  }
+}
