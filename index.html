@@ -285,6 +285,9 @@ h1{
 }
 h1 span{color:#f0b37a}
 .brand{align-items:center}
+a.home{color:inherit; text-decoration:none; display:block; border-radius:6px}
+a.home:active h1{transform:rotate(-1.5deg) translateY(1px)}
+a.home:focus-visible{outline:2px solid var(--cream); outline-offset:3px}
 .tag,.clock,.trophy{background:var(--card); border:1px solid #5a3b22; color:var(--ink); box-shadow:0 2px 4px rgba(0,0,0,.3); font-family:var(--mono)}
 .clock{font-weight:700}
 .level{color:var(--cream); font-family:var(--body); font-weight:700; margin-top:8px}
@@ -344,7 +347,7 @@ button.ghostbtn,.daypick button,.seg button,.close,.trophy{background:linear-gra
 
 <main class="wrap">
   <header>
-    <div class="brand"><h1>Letter<span>box</span></h1><span class="tags"><button id="trophyBtn" class="trophy" type="button" aria-label="Leaderboard and sign in">🏆</button><span id="clock" class="clock" data-band="idle" aria-label="Time">0:00</span><span id="tag" class="tag">No. 1</span></span></div>
+    <div class="brand"><a class="home" href="https://thepuzzleshed.com/" title="Back to The Puzzle Shed"><h1>Letter<span>box</span></h1></a><span class="tags"><button id="trophyBtn" class="trophy" type="button" aria-label="Leaderboard and sign in">🏆</button><span id="clock" class="clock" data-band="idle" aria-label="Time">0:00</span><span id="tag" class="tag">No. 1</span></span></div>
     <p class="level" id="level">Thursday · Medium</p>
     <p class="clue">Category: <strong id="clue">Food &amp; drink</strong></p>
   </header>
