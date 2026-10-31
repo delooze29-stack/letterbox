@@ -229,6 +229,28 @@ details.how b{color:var(--ink)}
 .sheet .chip{font-size:.72rem; padding:2px 8px; margin-left:6px; background:var(--paper); color:var(--muted)}
 .mlist li{display:flex; justify-content:space-between; gap:10px; align-items:center; padding:8px 0; border-bottom:1px solid var(--faint)}
 .link.danger{color:var(--cpu); align-self:flex-start}
+.seg.five{grid-template-columns:repeat(5,1fr)} .seg button{line-height:1.15}
+.chatbtn{flex:1 1 100%}
+.chat-nav{display:flex; align-items:center; justify-content:space-between; gap:8px; font-weight:700}
+.chat-nav button{padding:6px 14px; font-size:1.1rem}
+ol.chat{list-style:none; margin:0; padding:0; display:grid; gap:10px; max-height:46vh; overflow:auto}
+ol.chat li{background:#efe3c6; border-radius:10px; padding:9px 12px}
+ol.chat li.me{border-left:4px solid var(--good)}
+ol.chat li.flagged{border-left:4px solid var(--cpu)}
+.chat-h{display:flex; justify-content:space-between; gap:8px; font-size:.85rem} .chat-h span{color:var(--muted)}
+.chat-t{margin-top:2px; line-height:1.4; overflow-wrap:anywhere; white-space:pre-wrap}
+.chat-a{display:flex; flex-wrap:wrap; gap:4px 14px; font-size:.8rem; margin-top:4px} .chat-a:empty{display:none}
+.chat-a .flag{color:var(--cpu); font-weight:700; padding:4px 0}
+#chatTxt{width:100%; font:inherit; border-radius:8px; border:1px solid #5a3b22; background:#fffdf6; color:var(--ink); padding:9px 10px; resize:vertical}
+.chat-send{display:flex; justify-content:space-between; align-items:center; gap:8px}
+.nums{display:grid; grid-template-columns:repeat(4,1fr); gap:8px; text-align:center}
+.nums b{display:block; font-family:var(--mono); font-size:1.5rem}
+.nums span{font-size:.7rem; color:var(--muted); text-transform:uppercase; letter-spacing:.06em}
+.dist{display:grid; gap:5px}
+.bar{display:grid; grid-template-columns:2.4em 1fr 3.6em; gap:8px; align-items:center; font-size:.85rem}
+.bar i{display:block; min-width:0; background:#8a7a62; color:#fff; font-style:normal; text-align:right; padding:2px 7px; border-radius:4px; font-family:var(--mono); font-size:.8rem; white-space:nowrap}
+.bar.today i{background:var(--signgreen)}
+.bar small{color:var(--muted); font-size:.72rem}
 .copy{font-size:.75rem; color:var(--muted); text-align:center; margin:0}
 /* ================= The Puzzle Shed look (matches Tally) =================
    Timber walls, the title on a painted sign, the board on a chalkboard in a timber frame,
@@ -356,6 +378,7 @@ button.ghostbtn,.daypick button,.seg button,.close,.trophy{background:linear-gra
     <div class="sharebox"><p class="legend" id="legend"></p><pre id="share"></pre></div>
     <div class="row">
       <button id="copyBtn" type="button">Copy result</button>
+      <button id="chatBtn" type="button" class="ghostbtn chatbtn" hidden>💬 Chat about today's puzzle<span id="chatN"></span></button>
       <button id="practiceBtn2" type="button" class="ghostbtn">Practise another day</button>
     </div>
   </section>
@@ -380,6 +403,7 @@ button.ghostbtn,.daypick button,.seg button,.close,.trophy{background:linear-gra
       <li>Later days are worth more (×1 on Monday up to ×3 on Sunday). Monday to Sunday adds up to a weekly total, then it starts again.</li>
       <li>Everyone gets the same board and Red Pen plays the same way, so scores are comparable.</li>
       <li>Tap the 🏆 to pick a nickname and get on the leaderboard: today, this week, last week and all time. Your daily score is saved when you finish.</li>
+      <li>Once you've finished the day's puzzle, tap <b>💬 Chat</b> on your result to talk about it with everyone else who has. No spoilers: you can't see it until you've played.</li>
       <li>Start a <b>private league</b> for friends, family or work from the 🏆 → Leagues, and invite people by their nickname.</li>
     </ul>
   </details>
@@ -1023,6 +1047,7 @@ function shareText(){
   const res=g.status==='solved'?`✅ Solved in ${fmt(g.time||0)} · ${score(g)} pts`:'❌ Not solved';
   return `${head}\n${res}\n${phraseRows().join(' ')}\n${help?'Help used: '+help:'No help used'}${wk}\n${SITE}`;
 }
+let chatBtnTimer=null;
 function renderResult(){
   const over=g.status!=='play';$('result').hidden=!over;if(!over)return;
   const cfg=g.cfg,yb=boxesOf(g,'you'),cc=cluesCharged(g);
@@ -1047,6 +1072,7 @@ function renderResult(){
     $('legend').textContent='Your share: each square is a letter of the answer. 🟦 you won it · 🟥 Red Pen took it · 🟨 you bought it. 💡 tips · ⏭️ skips · ❓ clues bought · 🔤 letters bought.';
   }
   $('share').textContent=shareText();
+  if(typeof updateChatBtn==='function'&&!chatBtnTimer)chatBtnTimer=setTimeout(()=>{chatBtnTimer=null;updateChatBtn()},50);
 }
 
 /* ---------- play ---------- */
@@ -1204,7 +1230,8 @@ async function switchUser() {
   else { remoteWeek = null; myLeagues = []; myInvites = []; leaguesLoaded = false }
   updateTrophy(); if (g) render();
 }
-if (auth) auth.onAuthStateChanged(u => { user = u; switchUser().catch(e => console.warn(e)) });
+let authReadyRes; const authReady = new Promise(r => authReadyRes = r);
+if (auth) auth.onAuthStateChanged(u => { user = u; switchUser().catch(e => console.warn(e)).finally(() => authReadyRes()) }); else authReadyRes();
 function updateTrophy() { const b = $('trophyBtn'); if (!b) return; b.classList.toggle('signed', !!player); b.classList.toggle('alert', typeof myInvites !== 'undefined' && myInvites.length > 0) }
 
 /* ---------- pop-up sheet ---------- */
@@ -1510,14 +1537,148 @@ function showChangePw() {
     });
   });
 }
+/* ---------- Chat about each day's puzzle (same as Tally) ----------
+   One chat per daily puzzle. Only players who have finished that day's puzzle (so have a saved score)
+   can read or post, so there are no spoilers. Anyone can report a comment. The moderator (the player
+   called Mathew) can delete any comment, keep reported ones, stop a nickname posting, see reports from
+   earlier days and open any day's chat without playing it. */
+const MOD_SLUG = 'mathew', CHAT_MAX = 280;
+const isMod = () => !!(user && player && slug(player.name) === MOD_SLUG);
+const dayDate = d => new Date(2026, 9, 26 + d);
+const dayLabel = d => `${DAYS[((d % 7) + 7) % 7]} ${dayDate(d).getDate()} ${dayDate(d).toLocaleString('en-GB', { month: 'short' })}`;
+let chatCache = null, chatAt = 0, chatDay = LB_DAY;
+async function loadChat(day, force) {
+  if (!db) return [];
+  if (!force && chatCache && chatCache.d === day && Date.now() - chatAt < 15000) return chatCache.rows;
+  const q = await db.collection('comments').where('day', '==', day).get();
+  const rows = q.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => ms(a.ts) - ms(b.ts));
+  chatCache = { d: day, rows }; chatAt = Date.now(); return rows;
+}
+function ago(t) { const m = Math.max(0, Math.round((Date.now() - (ms(t) || Date.now())) / 6e4)); return m < 1 ? 'just now' : m < 60 ? m + 'm ago' : m < 1440 ? Math.round(m / 60) + 'h ago' : Math.round(m / 1440) + 'd ago' }
+const finishedToday = () => mode === 'daily' && g && g.status !== 'play';
+async function chatCount() {
+  if (!user || !finishedToday()) return 0;
+  try { await postScore(); return (await loadChat(LB_DAY)).length } catch (e) { return 0 }
+}
+function showChat(day) {
+  chatDay = day == null ? LB_DAY : day;
+  openSheet(`<h2>💬 Chat</h2><div id="chatTop"></div><div id="chatBody" class="form"><p class="muted">Loading…</p></div>`, sh => fillChat(sh.querySelector('#chatBody')));
+}
+async function fillChat(el, force) {
+  await authReady;
+  const mod = isMod(), day = chatDay, top = $('chatTop');
+  if (top) {
+    top.innerHTML = mod
+      ? `<div class="chat-nav"><button class="small ghostbtn" type="button" id="chPrev" aria-label="Earlier day">‹</button><span>${dayLabel(day)} · ${esc((WEEK[((day % 7) + 7) % 7] || {}).theme || '')}</span><button class="small ghostbtn" type="button" id="chNext" aria-label="Later day" ${day >= LB_DAY ? 'disabled' : ''}>›</button></div>`
+      : `<p class="muted small">Today's puzzle, ${dayLabel(day)}. Only players who've finished it can see this.</p>`;
+    const pv = $('chPrev'), nx = $('chNext');
+    if (pv) pv.addEventListener('click', () => { chatDay = day - 1; fillChat(el) });
+    if (nx) nx.addEventListener('click', () => { chatDay = Math.min(LB_DAY, day + 1); fillChat(el) });
+  }
+  if (!db) { el.innerHTML = '<p class="muted">The chat is offline right now.</p>'; return }
+  if (!user) { el.innerHTML = `<p class="muted">Sign in to join the chat.</p>` + signInHTML(); mountSignIn(el, () => showChat(day)); return }
+  if (!mod && !(day === LB_DAY && finishedToday())) { el.innerHTML = `<p>Finish today's puzzle first, then come back to chat about it. No spoilers here.</p>`; return }
+  if (!mod) { const r = await postScore(); if (r === 'error') { el.innerHTML = `<p class="muted">Your score for today needs saving before you can see the chat. Check your connection and try again.</p>`; return } }
+  let rows = [], banned = false, reports = {}, older = {};
+  try {
+    const jobs = [loadChat(day, force)];
+    jobs.push(db.collection('bans').doc(user.uid).get().then(d => banned = d.exists).catch(() => { }));
+    if (mod) jobs.push(db.collection('reports').get().then(q => q.docs.forEach(d => { const x = d.data(); (reports[x.cid] = reports[x.cid] || []).push(d.id); older[x.cid] = x })).catch(() => { }));
+    rows = (await Promise.all(jobs))[0];
+  } catch (e) { console.warn(e); el.innerHTML = `<p class="muted">${e.code === 'permission-denied' ? "You can see the chat once your score for today is saved." : 'Could not load the chat. Check your connection.'}</p>`; return }
+  const list = rows.length ? `<ol class="chat">${rows.map(r => `<li class="${r.uid === user.uid ? 'me' : ''}${reports[r.id] ? ' flagged' : ''}">
+      <div class="chat-h"><b>${esc(r.name)}</b><span>${ago(r.ts)}</span></div>
+      <div class="chat-t">${esc(r.text)}</div>
+      <div class="chat-a">${r.uid === user.uid ? `<button class="link" type="button" data-del="${r.id}">Delete</button>` : !mod ? `<button class="link" type="button" data-rep="${r.id}">Report</button>` : ''}${mod && r.uid !== user.uid ? `<button class="link" type="button" data-del="${r.id}">Delete</button><button class="link" type="button" data-ban="${r.uid}" data-name="${esc(r.name)}">Stop posting</button>` : ''}${mod && reports[r.id] ? `<span class="flag">⚑ Reported ×${reports[r.id].length}</span><button class="link" type="button" data-keep="${r.id}">Keep it</button>` : ''}</div></li>`).join('')}</ol>`
+    : `<p class="muted">No comments yet. Say how it went.</p>`;
+  const canPost = day === LB_DAY && (finishedToday() || false);
+  const form = banned ? `<div class="note">You can't post in the chat at the moment. If you think that's a mistake, email tallypuzzle@gmail.com.</div>` :
+    !canPost ? (mod ? `<p class="muted small">You can read and moderate this day. Posting is only for today's puzzle once you've finished it.</p>` : '') :
+    `<form class="form" id="chatForm" novalidate><textarea id="chatTxt" maxlength="${CHAT_MAX}" rows="2" placeholder="How did you get on? No answers please."></textarea>
+      <div class="chat-send"><span class="muted small" id="chatLeft">${CHAT_MAX}</span><button class="small" id="chatPost" type="submit">Post</button></div><div class="err" id="chatErr"></div></form>
+      <p class="muted small">Be kind. Comments can be reported, and anything nasty gets removed.</p>`;
+  const earlier = mod ? Object.values(older).filter(x => !rows.some(r => r.id === x.cid)) : [];
+  const modBox = earlier.length ? `<h3 class="sub">Reported from other days</h3><ol class="chat">${earlier.map(x => `<li class="flagged">
+      <div class="chat-h"><b>${esc(x.name)}</b><span>${dayLabel(x.day)}</span></div><div class="chat-t">${esc(x.text)}</div>
+      <div class="chat-a"><span class="flag">⚑ Reported ×${reports[x.cid].length}</span><button class="link" type="button" data-del="${x.cid}">Delete</button><button class="link" type="button" data-keep="${x.cid}">Keep it</button><button class="link" type="button" data-ban="${x.uid}" data-name="${esc(x.name)}">Stop posting</button></div></li>`).join('')}</ol>` : '';
+  el.innerHTML = modBox + list + form;
+  const ta = el.querySelector('#chatTxt');
+  if (ta) ta.addEventListener('input', () => { el.querySelector('#chatLeft').textContent = CHAT_MAX - ta.value.length });
+  const f = el.querySelector('#chatForm');
+  if (f) f.addEventListener('submit', async e => {
+    e.preventDefault(); const t = ta.value.trim(), err = el.querySelector('#chatErr'), b = el.querySelector('#chatPost'); err.textContent = '';
+    if (!t) return;
+    b.disabled = true;
+    try {
+      if (!player) await loadPlayer();
+      await db.collection('comments').add({ uid: user.uid, name: player.name, day: LB_DAY, text: t.slice(0, CHAT_MAX), ts: FV().serverTimestamp() });
+      fillChat(el, true);
+    } catch (x) {
+      console.warn(x); b.disabled = false;
+      err.textContent = x.code === 'permission-denied' ? "Couldn't post. Your score for today needs to be saved first, so check you're signed in." : 'Could not post. Check your connection.'
+    }
+  });
+  el.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', async () => {
+    if (b.dataset.sure !== '1') { b.dataset.sure = '1'; b.textContent = 'Tap again to delete'; return }
+    b.disabled = true;
+    try {
+      await db.collection('comments').doc(b.dataset.del).delete();
+      if (mod) (reports[b.dataset.del] || []).forEach(id => db.collection('reports').doc(id).delete().catch(() => { }));
+      toast('Deleted'); fillChat(el, true)
+    } catch (x) { console.warn(x); b.disabled = false; toast('Could not delete it') }
+  }));
+  el.querySelectorAll('[data-rep]').forEach(b => b.addEventListener('click', async () => {
+    b.disabled = true;
+    const r = rows.find(x => x.id === b.dataset.rep);
+    try { await db.collection('reports').doc(`${r.id}_${user.uid}`).set({ cid: r.id, day: r.day, uid: r.uid, name: r.name, text: r.text, by: user.uid, ts: FV().serverTimestamp() }); b.textContent = 'Reported'; toast('Thanks. It will be looked at.') }
+    catch (x) { console.warn(x); b.disabled = false; toast('Could not report it') }
+  }));
+  el.querySelectorAll('[data-keep]').forEach(b => b.addEventListener('click', async () => {
+    await Promise.all((reports[b.dataset.keep] || []).map(id => db.collection('reports').doc(id).delete().catch(() => { }))); toast('Kept'); fillChat(el, true);
+  }));
+  el.querySelectorAll('[data-ban]').forEach(b => b.addEventListener('click', async () => {
+    if (b.dataset.sure !== '1') { b.dataset.sure = '1'; b.textContent = `Tap again to stop ${b.dataset.name} posting`; return }
+    try { await db.collection('bans').doc(b.dataset.ban).set({ name: b.dataset.name, ts: FV().serverTimestamp() }); toast(`${b.dataset.name} can't post any more`) }
+    catch (x) { console.warn(x); toast('Could not do that') }
+  }));
+}
+function updateChatBtn() {
+  const b = $('chatBtn'); if (!b) return;
+  b.hidden = !finishedToday();
+  if (!b.hidden) chatCount().then(n => { const e = $('chatN'); if (e) e.textContent = n ? ` (${n})` : '' });
+}
+
+/* ---------- My stats: worked out from saved scores, so it's the same on every phone ---------- */
+async function myStatsHTML() {
+  if (!user) return '';
+  const q = await db.collection('scores').where('uid', '==', user.uid).get();
+  const sc = q.docs.map(d => d.data()).sort((a, b) => a.day - b.day);
+  if (!sc.length) return `<p class="muted">No saved scores yet. Finish today's puzzle while signed in and your stats start here.</p>`;
+  const pts = sc.reduce((a, x) => a + (x.points || 0), 0), solved = sc.filter(x => x.solved).length;
+  const days = new Set(sc.map(x => x.day));
+  let streak = 0, d = days.has(LB_DAY) ? LB_DAY : LB_DAY - 1;
+  while (days.has(d)) { streak++; d-- }
+  let best = 0, run = 0, prev = null;
+  [...days].sort((a, b) => a - b).forEach(x => { run = prev !== null && x === prev + 1 ? run + 1 : 1; best = Math.max(best, run); prev = x });
+  const top = sc.reduce((a, x) => x.points > a.points ? x : a, sc[0]);
+  const byWd = DAYS.map((n, i) => { const xs = sc.filter(x => x.day % 7 === i); return { n, avg: xs.length ? Math.round(xs.reduce((a, x) => a + x.points, 0) / xs.length) : 0, c: xs.length, theme: SHORT[WEEK[i].theme] } });
+  const mx = Math.max(1, ...byWd.map(x => x.avg));
+  return `<div class="nums"><div><b>${pts}</b><span>Points</span></div><div><b>${sc.length}</b><span>Played</span></div><div><b>${Math.round(solved / sc.length * 100)}</b><span>Solved %</span></div><div><b>${streak}</b><span>Streak</span></div></div>
+    <p class="muted small">Best streak ${best} day${best === 1 ? '' : 's'}. Top score <b>${top.points}</b> on ${dayLabel(top.day)} (${esc(top.theme)}).</p>
+    <h3 class="sub">Average score by day</h3>
+    <div class="dist">${byWd.map((x, i) => `<div class="bar${i === weekday ? ' today' : ''}"><span>${x.n.slice(0, 3)}</span>${x.c ? `<i style="width:${Math.max(10, x.avg / mx * 100)}%">${x.avg}</i>` : '<span></span>'}<small>${x.c ? `${x.c}×` : x.theme}</small></div>`).join('')}</div>
+    <p class="muted small">Worked out from your saved scores, so it's the same on every phone.</p>`;
+}
+
 let lbTab = 'week';
 function showBoard(tab) {
   if (tab) lbTab = tab;
-  const tabs = [['week', 'This week'], ['day', 'Today'], ['last', 'Last week'], ['all', 'All time']];
+  if (lbTab === 'me' && (!user || scopeLeague())) lbTab = 'week';
+  const tabs = [['week', 'This week'], ['day', 'Today'], ['last', 'Last week'], ['all', 'All time'], ...(user && !scopeLeague() ? [['me', 'My stats']] : [])];
   const lg = scopeLeague();
   const scope = user ? `<div class="scope"><select id="lbScope" aria-label="Which table">${[['', 'Everyone'], ...myLeagues.map(l => [l.id, l.name])].map(([v, l]) => `<option value="${v}"${v === (lg ? lg.id : '') ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select><button class="small ghostbtn" id="lbLeagues" type="button">Leagues${myInvites.length ? ` <span class="dot">${myInvites.length}</span>` : ''}</button></div>` : '';
   const who = user && player ? `<div class="who"><span>Playing as <strong>${esc(player.name)}</strong></span><span class="act"><button class="link" id="chPw" type="button">Change password</button><button class="link" id="signOut" type="button">Sign out</button></span></div>` : '';
-  openSheet(`<h2>Leaderboard</h2>${inviteBanner()}${scope}<div class="seg four" role="tablist">${tabs.map(([k, l]) => `<button role="tab" type="button" data-tab="${k}" aria-selected="${lbTab === k}">${l}</button>`).join('')}</div>${who}<div id="lbBody"><p class="muted">Loading…</p></div>`, sh => {
+  openSheet(`<h2>Leaderboard</h2>${inviteBanner()}${scope}<div class="seg ${tabs.length > 4 ? 'five' : 'four'}" role="tablist">${tabs.map(([k, l]) => `<button role="tab" type="button" data-tab="${k}" aria-selected="${lbTab === k}">${l}</button>`).join('')}</div>${who}<div id="lbBody"><p class="muted">Loading…</p></div>`, sh => {
     sh.querySelectorAll('[data-tab]').forEach(b => b.addEventListener('click', () => showBoard(b.dataset.tab)));
     const sc = sh.querySelector('#lbScope'); if (sc) sc.addEventListener('change', () => { setScope(sc.value); showBoard() });
     const lb = sh.querySelector('#lbLeagues'); if (lb) lb.addEventListener('click', showLeagues);
@@ -1530,6 +1691,7 @@ function showBoard(tab) {
 }
 async function fillBoard(el) {
   if (!db) { el.innerHTML = `<p class="muted">The leaderboard isn't connected yet. You can still play, and your scores are kept on this phone.</p>`; return }
+  if (lbTab === 'me') { try { el.innerHTML = await myStatsHTML() } catch (e) { console.warn(e); el.innerHTML = '<p class="muted">Could not load your stats. Check your connection.</p>' } return }
   let rows = [];
   const lg = scopeLeague();
   try {
@@ -1568,6 +1730,9 @@ async function fillBoard(el) {
   mountSignIn(el, () => showBoard());
 }
 $('trophyBtn').addEventListener('click', () => showBoard());
+$('chatBtn').addEventListener('click', () => showChat());
+/* letterbox.thepuzzleshed.com/#chat opens today's chat */
+if (location.hash === '#chat') { try { history.replaceState(null, '', location.pathname) } catch (e) { } setTimeout(() => authReady.then(() => showChat()), 300) }
 
 if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('sw.js').catch(e=>console.warn(e));
 startDaily();
