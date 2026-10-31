@@ -1666,7 +1666,7 @@ async function myStatsHTML() {
   return `<div class="nums"><div><b>${pts}</b><span>Points</span></div><div><b>${sc.length}</b><span>Played</span></div><div><b>${Math.round(solved / sc.length * 100)}</b><span>Solved %</span></div><div><b>${streak}</b><span>Streak</span></div></div>
     <p class="muted small">Best streak ${best} day${best === 1 ? '' : 's'}. Top score <b>${top.points}</b> on ${dayLabel(top.day)} (${esc(top.theme)}).</p>
     <h3 class="sub">Average score by day</h3>
-    <div class="dist">${byWd.map((x, i) => `<div class="bar${i === weekday ? ' today' : ''}"><span>${x.n.slice(0, 3)}</span><i style="width:${x.c ? Math.max(10, x.avg / mx * 100) : 0}%">${x.c ? x.avg : ''}</i><small>${x.c ? `${x.c}×` : x.theme}</small></div>`).join('')}</div>
+    <div class="dist">${byWd.map((x, i) => `<div class="bar${i === weekday ? ' today' : ''}"><span>${x.n.slice(0, 3)}</span>${x.c ? `<i style="width:${Math.max(10, x.avg / mx * 100)}%">${x.avg}</i>` : '<span></span>'}<small>${x.c ? `${x.c}×` : x.theme}</small></div>`).join('')}</div>
     <p class="muted small">Worked out from your saved scores, so it's the same on every phone.</p>`;
 }
 

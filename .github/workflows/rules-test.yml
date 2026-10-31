@@ -6,13 +6,16 @@ on:
     branches: [rules-test]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: 21
@@ -24,4 +27,9 @@ jobs:
         run: npm install --no-save --no-audit --no-fund firebase-tools@13.29.1 @firebase/rules-unit-testing@3.0.4 firebase@10.12.2
       - name: Run rules tests in the emulator
         working-directory: tests
-        run: npx firebase emulators:exec --only firestore --project demo-letterbox "node rules.test.mjs"
+        run: npx firebase emulators:exec --only firestore --project demo-letterbox "node rules.test.mjs" 2>&1 | tee results.txt; exit ${PIPESTATUS[0]}
+      - name: Save results to the branch
+        if: always()
+        run: |
+          git config user.name "rules-test"; git config user.email "rules-test@users.noreply.github.com"
+          git add tests/results.txt && git commit -m "Rules test results [skip ci]" && git push || true
