@@ -1,0 +1,102 @@
+[33m[1m⚠  emulators:[22m[39m You are not currently authenticated so some features may not work correctly. Please run [1mfirebase login[22m to authenticate the CLI.
+[36m[1mi  emulators:[22m[39m Starting emulators: firestore
+[36m[1mi  emulators:[22m[39m Detected demo project ID "demo-letterbox", emulated services will use a demo configuration and attempts to access non-emulated services for this project will fail.
+[33m[1m⚠ [22m[39m It appears you are running in a CI environment. You can avoid downloading the Firestore Emulator repeatedly by caching the /home/runner/.cache/firebase/emulators directory.
+[36m[1mi  firestore:[22m[39m downloading cloud-firestore-emulator-v1.19.8.jar...
+
+[36m[1mi  firestore:[22m[39m Firestore Emulator logging to [1mfirestore-debug.log[22m
+[32m[1m✔  firestore:[22m[39m Firestore Emulator UI websocket is running on 9150.
+[36m[1mi [22m[39m Running script: [1mnode rules.test.mjs[22m
+--- reading the chat (no spoilers)
+PASS finished player can read today's chat
+PASS player who has not finished cannot read it
+PASS signed-out visitor cannot read it
+PASS finished player cannot open one comment from a day they did not play
+PASS player who has not finished cannot open a single comment
+PASS nobody can list every day at once
+PASS moderator can read today without playing
+PASS moderator can read an earlier day
+--- posting
+PASS finished player can post
+PASS 280 characters is allowed
+[2026-10-31T14:06:00.483Z]  @firebase/firestore: Firestore (10.12.2): GrpcConnection RPC 'Write' stream 0x3354e2f8 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L161:24 for 'create' @ L161, false for 'create' @ L161
+PASS 281 characters is refused
+[2026-10-31T14:06:00.494Z]  @firebase/firestore: Firestore (10.12.2): GrpcConnection RPC 'Write' stream 0x3354e2f9 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L161:24 for 'create' @ L161, false for 'create' @ L161
+PASS empty comment is refused
+[2026-10-31T14:06:00.506Z]  @firebase/firestore: Firestore (10.12.2): GrpcConnection RPC 'Write' stream 0x3354e2fa error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L161:24 for 'create' @ L161, false for 'create' @ L161
+PASS cannot post under someone else's nickname
+[2026-10-31T14:06:00.517Z]  @firebase/firestore: Firestore (10.12.2): GrpcConnection RPC 'Write' stream 0x3354e2fb error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L161:24 for 'create' @ L161, false for 'create' @ L161
+PASS cannot post as another player
+[2026-10-31T14:06:00.538Z]  @firebase/firestore: Firestore (10.12.2): GrpcConnection RPC 'Write' stream 0x3354e2fc error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L161:24 for 'create' @ L161, false for 'create' @ L161
+PASS cannot post on a day you have not finished
+[2026-10-31T14:06:00.546Z]  @firebase/firestore: Firestore (10.12.2): GrpcConnection RPC 'Write' stream 0x3354e2fd error. Code: 7 Message: 7 PERMISSION_DENIED: 
+false for 'create' @ L161
+PASS cannot fake the time
+[2026-10-31T14:06:00.558Z]  @firebase/firestore: Firestore (10.12.2): GrpcConnection RPC 'Write' stream 0x3354e2fe error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L161:24 for 'create' @ L161, false for 'create' @ L161
+PASS cannot add extra fields
+[2026-10-31T14:06:00.570Z]  @firebase/firestore: Firestore (10.12.2): GrpcConnection RPC 'Write' stream 0x3354e2ff error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L161:24 for 'create' @ L161, false for 'create' @ L161
+PASS player who has not finished cannot post
+[2026-10-31T14:06:00.578Z]  @firebase/firestore: Firestore (10.12.2): GrpcConnection RPC 'Write' stream 0x3354e300 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+false for 'create' @ L161
+PASS signed-out visitor cannot post
+[2026-10-31T14:06:00.593Z]  @firebase/firestore: Firestore (10.12.2): GrpcConnection RPC 'Write' stream 0x3354e301 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L161:24 for 'create' @ L161, false for 'update' @ L171, false for 'update' @ L171
+PASS comments cannot be edited
+--- deleting
+[2026-10-31T14:06:00.626Z]  @firebase/firestore: Firestore (10.12.2): GrpcConnection RPC 'Write' stream 0x3354e303 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L172:24 for 'delete' @ L172, false for 'delete' @ L172
+PASS player cannot delete someone else's comment
+PASS player can delete their own comment
+PASS moderator can delete anyone's comment
+--- reporting
+PASS anyone signed in can report a comment
+[2026-10-31T14:06:00.661Z]  @firebase/firestore: Firestore (10.12.2): GrpcConnection RPC 'Write' stream 0x3354e306 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L175:24 for 'create' @ L175, false for 'create' @ L175
+PASS cannot report in someone else's name
+[2026-10-31T14:06:00.670Z]  @firebase/firestore: Firestore (10.12.2): GrpcConnection RPC 'Write' stream 0x3354e307 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L175:24 for 'create' @ L175, false for 'create' @ L175
+PASS report must use the right id
+[2026-10-31T14:06:00.677Z]  @firebase/firestore: Firestore (10.12.2): GrpcConnection RPC 'Write' stream 0x3354e308 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+false for 'create' @ L175
+PASS signed-out visitor cannot report
+PASS players cannot see reports
+PASS moderator can see all reports (including earlier days)
+[2026-10-31T14:06:00.701Z]  @firebase/firestore: Firestore (10.12.2): GrpcConnection RPC 'Write' stream 0x3354e309 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L180:30 for 'delete' @ L180, false for 'delete' @ L180
+PASS players cannot remove a report
+PASS moderator can "Keep it" (remove the report)
+--- stopping a nickname posting
+[2026-10-31T14:06:00.714Z]  @firebase/firestore: Firestore (10.12.2): GrpcConnection RPC 'Write' stream 0x3354e304 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L184:23 for 'create' @ L184, evaluation error at L184:23 for 'update' @ L184, false for 'create' @ L184
+PASS players cannot ban anyone
+PASS moderator can stop a nickname posting
+[2026-10-31T14:06:00.732Z]  @firebase/firestore: Firestore (10.12.2): GrpcConnection RPC 'Write' stream 0x3354e30a error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L161:24 for 'create' @ L161, false for 'create' @ L161
+PASS stopped player cannot post
+PASS stopped player can still read the chat
+PASS player can see they have been stopped
+PASS others cannot see who has been stopped
+PASS moderator can let them post again
+PASS and then they can post again
+--- the existing game rules still work
+PASS a new player can save today's score
+PASS …and can then read the chat
+[2026-10-31T14:06:00.850Z]  @firebase/firestore: Firestore (10.12.2): GrpcConnection RPC 'Write' stream 0x3354e30c error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L57:24 for 'create' @ L57, false for 'update' @ L72, false for 'create' @ L20, evaluation error at L29:24 for 'update' @ L29, false for 'update' @ L72
+PASS scores can't be posted twice in a day
+PASS leaderboards are still public
+PASS My stats query (your own scores) works
+
+44 passed, 0 failed
+[32m[1m✔ [22m[39m Script exited successfully (code 0)
+[36m[1mi  emulators:[22m[39m Shutting down emulators.
+[36m[1mi  firestore:[22m[39m Stopping Firestore Emulator
+[36m[1mi  hub:[22m[39m Stopping emulator hub
+[36m[1mi  logging:[22m[39m Stopping Logging Emulator
