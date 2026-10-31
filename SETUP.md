@@ -29,6 +29,15 @@ Without this, sign-in won't work on the new address.
 Open **letterbox.thepuzzleshed.com**, tap 🏆, make a nickname and password, play today's game, then check the This week and Today tabs.
 
 ## Notes
-- Passwords can't be reset (no emails). If someone forgets, delete their account under
-  Authentication → Users and their name under Firestore → names, so they can sign up again.
+- Players can change their own password: 🏆 → Change password.
+- If someone forgets theirs: GitHub → letterbox repo → Actions → **Reset a password** → Run workflow,
+  type their nickname and a new password, Run. Tell them the new one. (Needs the
+  FIREBASE_SERVICE_ACCOUNT secret, see below.)
+
+## Reset-a-password setup (once)
+1. Firebase → ⚙ Project settings → **Service accounts** → **Generate new private key** → Generate.
+   A .json file downloads. Keep it private.
+2. GitHub → letterbox repo → **Settings → Secrets and variables → Actions → New repository secret**.
+   Name `FIREBASE_SERVICE_ACCOUNT`, paste the whole contents of the .json file, **Add secret**.
+3. Delete the downloaded .json file from your computer.
 - Private leagues are included. Not included yet: notifications, challenges.
