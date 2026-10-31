@@ -143,5 +143,45 @@ service cloud.firestore {
         && (resource.data.uid == request.auth.uid
             || get(leaguePath(resource.data.league)).data.owner == request.auth.uid);
     }
+
+    // ---------- Chat about each day's puzzle ----------
+    // The moderator is whoever owns the nickname "Mathew".
+    function isMod() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/names/mathew)
+        && get(/databases/$(database)/documents/names/mathew).data.uid == request.auth.uid;
+    }
+    function hasScore(day) {
+      return exists(/databases/$(database)/documents/scores/$(string(day) + '_' + request.auth.uid));
+    }
+    match /comments/{id} {
+      // No spoilers: only players who have finished that day's puzzle (so have a saved score) can read it.
+      allow read: if request.auth != null && (isMod() || hasScore(resource.data.day));
+      // Only players with a score for that day, who aren't stopped from posting. 280 characters max.
+      allow create: if request.auth != null
+        && request.resource.data.keys().hasOnly(['uid', 'name', 'day', 'text', 'ts'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.day is int
+        && request.resource.data.text is string
+        && request.resource.data.text.size() >= 1 && request.resource.data.text.size() <= 280
+        && request.resource.data.ts == request.time
+        && request.resource.data.name == get(playerPath(request.auth.uid)).data.name
+        && hasScore(request.resource.data.day)
+        && !exists(/databases/$(database)/documents/bans/$(request.auth.uid));
+      allow update: if false;
+      allow delete: if request.auth != null && (resource.data.uid == request.auth.uid || isMod());
+    }
+    match /reports/{id} {
+      allow create: if request.auth != null
+        && id == request.resource.data.cid + '_' + request.auth.uid
+        && request.resource.data.keys().hasOnly(['cid', 'day', 'uid', 'name', 'text', 'by', 'ts'])
+        && request.resource.data.by == request.auth.uid
+        && request.resource.data.ts == request.time;
+      allow read, delete: if isMod();
+    }
+    match /bans/{uid} {
+      allow read: if request.auth != null && (request.auth.uid == uid || isMod());
+      allow write: if isMod();
+    }
   }
 }

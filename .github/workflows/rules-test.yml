@@ -1,0 +1,27 @@
+name: Test database rules
+
+# Runs firestore.rules in the Firebase emulator against the chat, scores and leagues checks.
+on:
+  push:
+    branches: [rules-test]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Install
+        working-directory: tests
+        run: npm install --no-save --no-audit --no-fund firebase-tools@13.29.1 @firebase/rules-unit-testing@3.0.4 firebase@10.12.2
+      - name: Run rules tests in the emulator
+        working-directory: tests
+        run: npx firebase emulators:exec --only firestore --project demo-letterbox "node rules.test.mjs"
