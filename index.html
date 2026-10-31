@@ -6,11 +6,11 @@
 <title>Letterbox</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Atkinson+Hyperlegible:wght@400;700&family=Kalam:wght@700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Azeret+Mono:wght@500;700&family=Figtree:wght@400;600;700&family=Kalam:wght@700&display=swap">
 <meta name="description" content="A daily dots and boxes word puzzle. Win boxes to reveal the hidden answer before Red Pen does.">
 <meta name="author" content="Mathew Doughty">
 <meta name="copyright" content="© 2026 Mathew Doughty. All rights reserved.">
-<meta name="theme-color" content="#f2f5f8">
+<meta name="theme-color" content="#6d4a2d">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/favicon-64.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -230,6 +230,94 @@ details.how b{color:var(--ink)}
 .mlist li{display:flex; justify-content:space-between; gap:10px; align-items:center; padding:8px 0; border-bottom:1px solid var(--faint)}
 .link.danger{color:var(--cpu); align-self:flex-start}
 .copy{font-size:.75rem; color:var(--muted); text-align:center; margin:0}
+/* ================= The Puzzle Shed look (matches Tally) =================
+   Timber walls, the title on a painted sign, the board on a chalkboard in a timber frame,
+   paper slips and notes for everything else. Same in light and dark mode, like the shed itself. */
+:root,:root[data-theme="dark"]{
+  --paper:#ebdfc2; --grid:#e3d4b2; --card:#f6eedb; --ink:#2b2219; --muted:#6d5f4c; --faint:#cdb88f;
+  --you:#2747c4; --you-soft:#dde3f7; --cpu:#b0412d; --cpu-soft:#f3d9cf; --good:#22915d;
+  --body:"Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --display:"Alfa Slab One", Rockwell, "Roboto Slab", Georgia, serif;
+  --sign:"Alfa Slab One", Rockwell, "Roboto Slab", Georgia, serif;
+  --mono:"Azeret Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --wood:#6d4a2d; --cream:#f3e6c4; --signgreen:#2a4333; color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#ebdfc2; --grid:#e3d4b2; --card:#f6eedb; --ink:#2b2219; --muted:#6d5f4c; --faint:#cdb88f;
+  --you:#2747c4; --you-soft:#dde3f7; --cpu:#b0412d; --cpu-soft:#f3d9cf; --good:#22915d; color-scheme:light}}
+html{background:#3a2a1c}
+body{
+  color:var(--ink); font-family:var(--body);
+  background-color:var(--wood); background-size:auto;
+  background-image:
+    radial-gradient(ellipse 100% 45% at 50% 0%,rgba(255,214,140,.26),transparent 70%),
+    repeating-linear-gradient(90deg,rgba(0,0,0,.42) 0 2px,rgba(255,255,255,.06) 2px 3px,transparent 3px 96px),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.012 .55' numOctaves='3' seed='4'/%3E%3CfeColorMatrix values='0 0 0 0 .2  0 0 0 0 .12  0 0 0 0 .05  0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23g)'/%3E%3C/svg%3E"),
+    repeating-linear-gradient(90deg,#714d2f 0 96px,#664429 96px 192px,#7a5434 192px 288px,#6a482b 288px 384px);
+}
+/* header: painted sign and paper tags */
+h1{
+  font-family:var(--sign); font-weight:400; font-size:27px; letter-spacing:.04em; color:var(--cream);
+  background:linear-gradient(180deg,#36553f,#2a4333); padding:6px 12px 5px; border-radius:4px;
+  border:3px solid #5a3b22; box-shadow:0 4px 8px rgba(0,0,0,.4); transform:rotate(-1.5deg); text-shadow:0 1px 0 rgba(0,0,0,.35); align-self:flex-start
+}
+h1 span{color:#f0b37a}
+.brand{align-items:center}
+.tag,.clock,.trophy{background:var(--card); border:1px solid #5a3b22; color:var(--ink); box-shadow:0 2px 4px rgba(0,0,0,.3); font-family:var(--mono)}
+.clock{font-weight:700}
+.level{color:var(--cream); font-family:var(--body); font-weight:700; margin-top:8px}
+.clue{color:var(--cream); opacity:.9} .clue strong{color:var(--cream)}
+/* week strip and paper slips */
+.wd{border-color:#cdb88f; box-shadow:0 2px 4px rgba(0,0,0,.25)}
+.wd b{font-family:var(--mono)}
+.wd.today{border:2px solid var(--signgreen)} .wd.today span{color:var(--signgreen)}
+.wd.future{opacity:.65}
+.wd.total{background:linear-gradient(180deg,#36553f,#2a4333); border-color:#5a3b22} .wd.total span,.wd.total b{color:var(--cream)}
+.answer,details.how,#result,.sheet{border:none; box-shadow:0 4px 12px rgba(0,0,0,.32)}
+.answer{background-image:repeating-linear-gradient(0deg,transparent 0 23px,rgba(120,90,50,.08) 23px 24px)}
+.hints li{color:var(--cream)}
+.hints li b{background:var(--card); border-color:#5a3b22}
+.hints li.got,.hints li.lost{color:var(--cream)}
+.hints li.lost b{background:var(--cpu-soft)}
+.buy{background:var(--card); border-color:#5a3b22; color:var(--ink)}
+.status{color:var(--cream); opacity:.9}
+.pill{box-shadow:0 2px 4px rgba(0,0,0,.25)}
+.pill b{font-family:var(--mono)}
+/* the board: a chalkboard in a timber frame, written in chalk */
+.boardcard{
+  --ink:#f1efe6; --muted:#c9d3cc; --you:#9fd0ff; --cpu:#ff9a88; --good:#9fe3b4;
+  --you-soft:rgba(159,208,255,.16); --cpu-soft:rgba(255,154,136,.16); --faint:rgba(241,239,230,.28);
+  background:radial-gradient(ellipse at 30% 20%,rgba(255,255,255,.07),transparent 60%),#26332c;
+  border:8px solid #7b5129; border-radius:6px; padding:4px;
+  box-shadow:0 10px 20px rgba(0,0,0,.45),inset 0 0 24px rgba(0,0,0,.45),0 0 0 2px #4a3020
+}
+.box text{font-family:var(--hand)}
+.box text.lv{font-family:var(--mono)}
+.box text.paid{fill:#ffd27a}
+.box text.buymark{fill:var(--cpu)}
+.tip .ln{stroke:var(--good)}
+/* inputs and buttons: wooden blocks and the green sign */
+input{background:var(--card); border-color:#5a3b22; color:var(--ink)}
+button{background:linear-gradient(180deg,#36553f,#2a4333); color:var(--cream); box-shadow:0 2px 4px rgba(0,0,0,.3)}
+button.ghostbtn,.daypick button,.seg button,.close,.trophy{background:linear-gradient(180deg,#f0dcb4,#ddc193); color:var(--ink); border:1px solid #5a3b22}
+.seg{background:#e2d2ad} .seg button{box-shadow:none; border-color:transparent; background:transparent; color:var(--muted)}
+.seg button[aria-selected="true"]{background:var(--card); color:var(--ink); border-color:#cdb88f}
+.daypick button small{color:var(--muted)}
+.daypick button.on{background:linear-gradient(180deg,#36553f,#2a4333); color:var(--cream); border-color:#5a3b22}
+.daypick button.on small{color:var(--cream)}
+.link{background:none; box-shadow:none; color:var(--signgreen)}
+.link.danger{color:var(--cpu)}
+.lives i{background:var(--cream)} .lives i.used{border-color:#ff9a88; background:transparent}
+.msg{color:#ffc2b6} .msg.ok{color:#a6f0c0}
+.pick-label,.copy{color:var(--cream); opacity:.85}
+.trophy.signed{background:linear-gradient(180deg,#36553f,#2a4333); color:var(--cream)}
+.sheet h2,#result h2{font-family:var(--sign); font-weight:400; letter-spacing:.02em}
+#result .phrase{color:var(--you)}
+.br.total,.board-list .pt{font-family:var(--mono)}
+.chip{background:var(--you-soft)}
+.toast{background:var(--signgreen); color:var(--cream)}
+.tray-head{color:var(--muted)}
+.sheet input{text-transform:none; letter-spacing:normal}
 </style>
 
 <main class="wrap">
