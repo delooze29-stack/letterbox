@@ -27,7 +27,7 @@ jobs:
         run: npm install --no-save --no-audit --no-fund firebase-tools@13.29.1 @firebase/rules-unit-testing@3.0.4 firebase@10.12.2
       - name: Run rules tests in the emulator
         working-directory: tests
-        run: npx firebase emulators:exec --only firestore --project demo-letterbox "node rules.test.mjs" 2>&1 | tee results.txt; exit ${PIPESTATUS[0]}
+        run: cp ../firestore.rules firestore.rules && npx firebase emulators:exec --only firestore --project demo-letterbox "node rules.test.mjs" 2>&1 | tee results.txt; exit ${PIPESTATUS[0]}
       - name: Save results to the branch
         if: always()
         run: |
