@@ -7,7 +7,17 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Azeret+Mono:wght@500;700&family=Figtree:wght@400;600;700&family=Kalam:wght@700&display=swap">
-<meta name="description" content="A daily dots and boxes word puzzle. Win boxes to reveal the hidden answer before Red Pen does.">
+<meta name="description" content="A daily dots and boxes word puzzle. Beat Red Pen to the boxes to reveal the hidden answer.">
+<meta property="og:title" content="Letterbox: a daily dots and boxes word puzzle">
+<meta property="og:description" content="Beat Red Pen to the boxes and reveal the hidden answer. A new puzzle every day, harder by Sunday. Can you beat my score?">
+<meta property="og:url" content="https://letterbox.thepuzzleshed.com/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="The Puzzle Shed">
+<meta property="og:image" content="https://letterbox.thepuzzleshed.com/icons/share.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Letterbox: beat Red Pen to the boxes and reveal the hidden answer">
+<meta name="twitter:card" content="summary_large_image">
 <meta name="author" content="Mathew Doughty">
 <meta name="copyright" content="© 2026 Mathew Doughty. All rights reserved.">
 <meta name="theme-color" content="#6d4a2d">
@@ -251,6 +261,9 @@ ol.chat li.flagged{border-left:4px solid var(--cpu)}
 .bar i{display:block; min-width:0; background:#8a7a62; color:#fff; font-style:normal; text-align:right; padding:2px 7px; border-radius:4px; font-family:var(--mono); font-size:.8rem; white-space:nowrap}
 .bar.today i{background:var(--signgreen)}
 .bar small{color:var(--muted); font-size:.72rem}
+details.how a,.sheet .muted a{color:var(--signgreen); font-weight:700}
+.copy a{color:var(--cream); font-weight:700}
+a.shed{display:block; margin-bottom:4px}
 .copy{font-size:.75rem; color:var(--muted); text-align:center; margin:0}
 /* ================= The Puzzle Shed look (matches Tally) =================
    Timber walls, the title on a painted sign, the board on a chalkboard in a timber frame,
@@ -409,9 +422,10 @@ button.ghostbtn,.daypick button,.seg button,.close,.trophy{background:linear-gra
       <li>Once you've finished the day's puzzle, tap <b>💬 Chat</b> on your result to talk about it with everyone else who has. No spoilers: you can't see it until you've played.</li>
       <li>Start a <b>private league</b> for friends, family or work from the 🏆 → Leagues, and invite people by their nickname.</li>
     </ul>
+    <p class="muted small"><a class="shed" href="https://thepuzzleshed.com/">🛖 Letterbox is part of The Puzzle Shed. More puzzles →</a> Tap the Letterbox sign at the top any time to go back to the shed. <a href="https://thepuzzleshed.com/rules.html" target="_blank" rel="noopener">House rules and privacy</a></p>
   </details>
 
-    <p class="copy">Letterbox © 2026 Mathew Doughty. All rights reserved.</p>
+    <p class="copy">Letterbox © 2026 Mathew Doughty. All rights reserved. · <a href="https://thepuzzleshed.com/rules.html" target="_blank" rel="noopener">House rules and privacy</a></p>
 </main>
 <div class="toast" id="toast" hidden role="status"></div>
 <div class="scrim" id="scrim" hidden><div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="Leaderboard"></div></div>
@@ -1271,6 +1285,7 @@ function signInHTML() {
       </div>
       <div class="err" id="signErr"></div>
       <button id="signBtn" type="submit" hidden>Create player</button>
+      <p class="muted small">By playing you agree to the <a href="https://thepuzzleshed.com/rules.html" target="_blank" rel="noopener">house rules</a>. See what we keep in the <a href="https://thepuzzleshed.com/rules.html#privacy" target="_blank" rel="noopener">privacy notes</a>.</p>
     </form>
   </div>`;
 }
@@ -1599,7 +1614,7 @@ async function fillChat(el, force) {
     !canPost ? (mod ? `<p class="muted small">You can read and moderate this day. Posting is only for today's puzzle once you've finished it.</p>` : '') :
     `<form class="form" id="chatForm" novalidate><textarea id="chatTxt" maxlength="${CHAT_MAX}" rows="2" placeholder="How did you get on? No answers please."></textarea>
       <div class="chat-send"><span class="muted small" id="chatLeft">${CHAT_MAX}</span><button class="small" id="chatPost" type="submit">Post</button></div><div class="err" id="chatErr"></div></form>
-      <p class="muted small">Be kind. Comments can be reported, and anything nasty gets removed.</p>`;
+      <p class="muted small">Be kind: see the <a href="https://thepuzzleshed.com/rules.html" target="_blank" rel="noopener">house rules</a>. Comments can be reported, and the game's owner removes anything nasty.</p>`;
   const earlier = mod ? Object.values(older).filter(x => !rows.some(r => r.id === x.cid)) : [];
   const modBox = earlier.length ? `<h3 class="sub">Reported from other days</h3><ol class="chat">${earlier.map(x => `<li class="flagged">
       <div class="chat-h"><b>${esc(x.name)}</b><span>${dayLabel(x.day)}</span></div><div class="chat-t">${esc(x.text)}</div>
